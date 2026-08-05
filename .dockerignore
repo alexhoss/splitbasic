@@ -1,0 +1,11 @@
+node_modules
+dist
+data
+*.log
+vite-dev.log
+vite-dev.pid
+.freebuff
+.git
+.gitignore
+Dockerfile
+docker-compose.yml
