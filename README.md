@@ -16,7 +16,7 @@ Create a `docker-compose.yml` with your GitHub username swapped in:
 ```yaml
 services:
   splitbasic:
-    image: ghcr.io/your-username/splitwise-basic:latest
+    image: ghcr.io/alexhoss/splitwise-basic:latest
     ports:
       - "3000:3000"
     environment:
