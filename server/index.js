@@ -330,6 +330,24 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: 'Something went wrong' })
 })
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`SplitBasic server listening on http://localhost:${PORT}`)
 })
+
+// Graceful shutdown: close the database cleanly on SIGTERM / SIGINT.
+function shutdown(signal) {
+  console.log(`\nReceived ${signal}, shutting down gracefully…`)
+  server.close(() => {
+    db.close()
+    console.log('Server and database closed.')
+    process.exit(0)
+  })
+  // Force exit after 10s if graceful shutdown hangs.
+  setTimeout(() => {
+    console.error('Forced shutdown after timeout.')
+    process.exit(1)
+  }, 10_000).unref()
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'))
+process.on('SIGINT', () => shutdown('SIGINT'))

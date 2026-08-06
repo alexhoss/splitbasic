@@ -1,0 +1,62 @@
+name: Build and Publish
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+  pull_request:
+    branches: [master]
+
+env:
+  REGISTRY: ghcr.io
+  # ${{ github.repository }} is "owner/repo", e.g. "you/splitwise-basic"
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: |
+            # Disable auto-latest on branch push so :latest only tracks releases.
+            latest=false
+          tags: |
+            # Branch push → :master
+            type=ref,event=branch
+            # Tag push (v1.2.3) → :1.2.3 + :1.2 + :1 + :latest
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            # Commit hash → :sha-abc1234 (always, for pinning)
+            type=sha,prefix=sha-
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          # Only push on push-to-master or tag pushes; skip on pull requests.
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Leverage GitHub Actions cache so subsequent builds are fast.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

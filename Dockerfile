@@ -30,6 +30,10 @@ RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
 COPY server ./server
 
+# Create data directory and ensure node user owns it, then drop root.
+RUN mkdir -p /app/data && chown -R node:node /app
+USER node
+
 ENV PORT=3000
 EXPOSE 3000
 VOLUME /app/data

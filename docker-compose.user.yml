@@ -1,0 +1,42 @@
+# ─── SplitBasic — pull from GitHub Container Registry (no build step) ───
+#
+# Replace "your-username" with the GitHub username or org that owns the repo.
+# Then run:
+#
+#   docker compose -f docker-compose.user.yml up -d
+#
+# Open http://localhost:3000.  Your data lives in the splitbasic-data volume
+# (survives restarts and image updates) and can be backed up with any SQLite
+# tool by pointing it at the volume's splitbasic.db file.
+#
+# To upgrade to a newer image:
+#
+#   docker compose -f docker-compose.user.yml pull
+#   docker compose -f docker-compose.user.yml up -d
+
+services:
+  splitbasic:
+    image: ghcr.io/your-username/splitwise-basic:latest
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      DB_PATH: /app/data/splitbasic.db
+    volumes:
+      - splitbasic-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:3000/api/trips').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  splitbasic-data:
